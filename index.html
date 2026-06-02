@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="QuantSight AI — professional stock analysis, ML forecasts, and interactive market charts." />
+    <meta name="theme-color" content="#05070d" />
+    <title>QuantSight AI | Stock Price Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#mainContent">Skip to dashboard</a>
+
+    <header class="app-header">
+      <div class="header-brand">
+        <span class="brand-mark" aria-hidden="true">QS</span>
+        <div class="header-brand-text">
+          <span class="eyebrow">QuantSight AI</span>
+          <span class="header-title">Stock Predictor</span>
+        </div>
+      </div>
+
+      <form class="header-search" id="searchForm" role="search" onsubmit="return false">
+        <label class="sr-only" for="tickerInput">Ticker symbol</label>
+        <div class="search-wrap">
+          <input id="tickerInput" type="search" value="" placeholder="Symbol e.g. AAPL, TSLA…" autocomplete="off" spellcheck="false" />
+          <button id="loadBtn" type="submit" class="btn-run">Analyze</button>
+          <div id="suggestions" class="suggestions" hidden role="listbox"></div>
+        </div>
+      </form>
+
+      <div class="header-actions">
+        <div class="market-status" id="desktopDataSource">
+          <span class="pulse" aria-hidden="true"></span>
+          <span id="dataSource">Awaiting data</span>
+        </div>
+        <button type="button" class="icon-btn" id="menuToggle" aria-expanded="false" aria-controls="sidebarNav" aria-label="Open tools panel">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="command-bar" role="toolbar" aria-label="Analysis filters">
+      <div class="command-group">
+        <label class="command-label" for="exchangeSelect">Exchange</label>
+        <select id="exchangeSelect" class="command-select">
+          <option value="US">US · NASDAQ/NYSE</option>
+          <option value="NS">India · NSE</option>
+          <option value="BO">India · BSE</option>
+        </select>
+      </div>
+
+      <div class="command-divider" aria-hidden="true"></div>
+
+      <div class="command-group grow">
+        <span class="command-label" id="rangeLabel">Range</span>
+        <div class="segmented scroll-x" id="rangeButtons" role="group" aria-labelledby="rangeLabel">
+          <button type="button" data-range="1mo">1M</button>
+          <button type="button" data-range="3mo">3M</button>
+          <button type="button" data-range="6mo" class="active">6M</button>
+          <button type="button" data-range="1y">1Y</button>
+          <button type="button" data-range="5y">5Y</button>
+        </div>
+      </div>
+
+      <div class="command-divider" aria-hidden="true"></div>
+
+      <div class="command-group">
+        <span class="command-label" id="horizonLabel">Forecast</span>
+        <div class="segmented compact" id="horizonButtons" role="group" aria-labelledby="horizonLabel">
+          <button type="button" data-horizon="1" class="active">1D</button>
+          <button type="button" data-horizon="5">1W</button>
+          <button type="button" data-horizon="22">1M</button>
+        </div>
+      </div>
+
+      <div class="command-divider hide-mobile" aria-hidden="true"></div>
+
+      <button type="button" id="customBtn" class="command-action hide-mobile" title="Import CSV or JSON">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Import
+      </button>
+    </div>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+
+    <aside class="tools-drawer glass" id="sidebarNav" aria-label="Tools and data">
+      <div class="drawer-head">
+        <h2>Tools & data</h2>
+        <button type="button" class="icon-btn" id="sidebarClose" aria-label="Close panel">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="drawer-body">
+        <section class="drawer-section show-mobile">
+          <span class="command-label">Exchange</span>
+          <select id="exchangeSelectMobile" class="command-select full" data-sync="exchangeSelect">
+            <option value="US">US · NASDAQ/NYSE</option>
+            <option value="NS">India · NSE</option>
+            <option value="BO">India · BSE</option>
+          </select>
+        </section>
+
+        <section class="drawer-section panel-inset custom-dataset">
+          <label class="dataset-heading" for="importFile">Custom dataset</label>
+          <input id="importFile" type="file" accept=".csv,.json,.txt,text/csv,application/json" hidden />
+          <p id="importFileName" class="import-hint">CSV or JSON with date, open, high, low, close, volume</p>
+
+          <fieldset class="date-filter">
+            <legend class="field-label">Optional date filter</legend>
+            <div class="date-grid">
+              <div class="date-field">
+                <label for="startDate">From</label>
+                <input id="startDate" type="date" />
+              </div>
+              <div class="date-field">
+                <label for="endDate">To</label>
+                <input id="endDate" type="date" />
+              </div>
+            </div>
+          </fieldset>
+
+          <button type="button" id="customBtnDrawer" class="btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Import from computer
+          </button>
+        </section>
+
+        <section class="drawer-section" aria-label="Session">
+          <button type="button" id="resetBtn" class="btn-reset">Reset all</button>
+        </section>
+
+        <section class="drawer-section" aria-label="Export">
+          <p class="field-label">Export</p>
+          <div class="export-grid">
+            <button id="csvBtn" class="utility" type="button">CSV</button>
+            <button id="reportBtn" class="utility" type="button">Report</button>
+            <button id="chartBtn" class="utility" type="button">Chart PNG</button>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <main class="dashboard" id="mainContent">
+      <div class="loading-bar" id="loadingBar" hidden aria-hidden="true"></div>
+
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">Active instrument</p>
+          <h1 id="assetTitle">No instrument selected</h1>
+        </div>
+      </header>
+
+      <div class="dashboard-grid">
+        <div class="content-primary">
+          <section class="forecast-strip glass" aria-label="AI forecast summary">
+            <div class="forecast-strip-main">
+              <div>
+                <p class="eyebrow">AI forecast</p>
+                <p class="prediction-value" id="predictionPrice">—</p>
+              </div>
+              <div class="signal" id="signalBadge">—</div>
+            </div>
+            <div class="confidence">
+              <div>
+                <span>Model confidence</span>
+                <strong id="confidenceText">0%</strong>
+              </div>
+              <div class="bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="confidenceTrack">
+                <span id="confidenceBar"></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="kpi-grid" id="kpiGrid" aria-label="Key metrics">
+            <p class="empty-hint">Enter a symbol and analyze, or import a dataset to view metrics.</p>
+          </section>
+
+          <section class="chart-card glass chart-hero" aria-label="Price chart">
+            <div class="chart-head">
+              <div>
+                <p class="eyebrow">Price · MAs · forecast path</p>
+                <h2 class="chart-title">Price intelligence</h2>
+              </div>
+              <div class="chart-tabs" id="chartMode" role="tablist" aria-label="Chart type">
+                <button type="button" role="tab" data-mode="line" class="active" aria-selected="true">Line</button>
+                <button type="button" role="tab" data-mode="candle" aria-selected="false">Candles</button>
+              </div>
+            </div>
+            <div class="chart-stage">
+              <canvas id="priceCanvas" width="1200" height="560"></canvas>
+              <div id="tooltip" class="tooltip" hidden></div>
+            </div>
+          </section>
+
+          <div class="analytics-row">
+            <article class="chart-card glass" aria-label="Volume chart">
+              <div class="chart-head compact-head">
+                <div>
+                  <p class="eyebrow">Activity</p>
+                  <h3>Volume</h3>
+                </div>
+              </div>
+              <div class="chart-stage short">
+                <canvas id="volumeCanvas" width="760" height="280"></canvas>
+              </div>
+            </article>
+
+            <article class="watchlist glass" aria-label="Watchlist">
+              <div class="chart-head compact-head">
+                <div>
+                  <p class="eyebrow">Peers</p>
+                  <h3>Watchlist</h3>
+                </div>
+              </div>
+              <div id="watchlist" class="watchlist-rows"></div>
+            </article>
+          </div>
+        </div>
+
+        <aside class="content-intel" aria-label="Model and insights">
+          <section class="intel-card glass">
+            <div class="chart-head compact-head">
+              <div>
+                <p class="eyebrow">Diagnostics</p>
+                <h3>Model accuracy</h3>
+              </div>
+            </div>
+            <div id="modelMetrics" class="metric-list"></div>
+          </section>
+
+          <section class="intel-card glass insights-panel">
+            <div class="chart-head compact-head">
+              <div>
+                <p class="eyebrow">Analyst notes</p>
+                <h3>AI insights</h3>
+              </div>
+              <button id="copyInsights" class="btn-ghost" type="button">Copy</button>
+            </div>
+            <div id="insights" class="insights"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>QuantSight AI · Research & education only · Not financial advice</p>
+    </footer>
+
+    <div id="toast" class="toast-banner" hidden role="status" aria-live="polite"></div>
+
+    <script src="./src/app.js"></script>
+  </body>
+</html>
